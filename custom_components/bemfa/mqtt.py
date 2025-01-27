@@ -143,7 +143,7 @@ class BemfaMqtt:
     def _mqtt_on_message(self, _mqtt_client, _userdata, message) -> None:
         if message.topic == TOPIC_PING:
             if self._ping_receive_timer is not None:
-                self._ping_receive_timer.cancel()
+                #self._ping_receive_timer.cancel()
                 self._ping_lost = 0
             return
 
