@@ -46,6 +46,7 @@ class BemfaMqtt:
         self._ping_publish_timer: Any = None
         self._ping_receive_timer: Any = None
         self._ping_lost: int = 0
+        self._loop = asyncio.get_event_loop()
 
     def create_sync(self, sync: Sync):
         """Add an topic to our watching list."""
@@ -141,10 +142,17 @@ class BemfaMqtt:
                 )
 
     def _mqtt_on_message(self, _mqtt_client, _userdata, message) -> None:
+        # 在不同的线程中取消任务
+        async def cancel_in_event_loop():
+            if self._ping_receive_timer:
+                self._ping_receive_timer.cancel()
+                self._ping_lost = 0
+
+        # 使用 asyncio.run_coroutine_threadsafe 来确保在事件循环线程中取消任务
         if message.topic == TOPIC_PING:
             if self._ping_receive_timer is not None:
-                #self._ping_receive_timer.cancel()
-                self._ping_lost = 0
+                asyncio.run_coroutine_threadsafe(cancel_in_event_loop(), self._loop)
+                logging.error("bemfa Received heartbeat packages")
             return
 
         if message.topic in self._topic_to_sync:
